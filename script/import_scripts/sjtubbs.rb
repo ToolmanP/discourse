@@ -28,6 +28,11 @@ class ImportScripts::SJTUBBS < ImportScripts::Base
         }
       end
     end
+    User.find_each do |user|
+      user.import_mode = false
+      user.create_user_avatar!
+      user.import_mode = true
+    end
   end
 
   def import_categories
@@ -59,13 +64,14 @@ class ImportScripts::SJTUBBS < ImportScripts::Base
           title: topic["title"],
           raw: topic["content"],
           created_at: topic["created_at"],
-          category_id: category_id_from_imported_category_id("category#" + topic["board_id"]),
+          category: category_id_from_imported_category_id("category#" + topic["board_id"]),
         }
       end
     end
   end
 
   def import_posts
+    puts "", "importing posts..."
     post_count = @connection.exec("SELECT COUNT(*) FROM posts;").first["count"]
     batches(BATCH_SIZE) do |offset|
       posts =
