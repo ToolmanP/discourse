@@ -76,11 +76,11 @@ class ImportScripts::SJTUBBS < ImportScripts::Base
     batches(BATCH_SIZE) do |offset|
       posts =
         @connection.exec(
-          "SELECT id, content, created_at, topic_id, author_id FROM posts  ORDER BY id LIMIT #{BATCH_SIZE} OFFSET #{offset};",
+          "SELECT id, content, created_at, topic_id, author_id, reply_to_id FROM posts  ORDER BY id LIMIT #{BATCH_SIZE} OFFSET #{offset};",
         )
       break if posts.to_a.size < 1
       create_posts(posts, total: post_count, offset: offset) do |post|
-        {
+        opts = {
           id: "post#" + post["id"],
           user_id:
             user_id_from_imported_user_id("user#" + post["author_id"]) || Discourse::SYSTEM_USER_ID,
@@ -88,6 +88,10 @@ class ImportScripts::SJTUBBS < ImportScripts::Base
           created_at: post["created_at"],
           topic_id: topic_lookup_from_imported_post_id("topic#" + post["topic_id"])[:topic_id],
         }
+        if post["reply_to_id"]
+          opts[:reply_to_post_number] = post_id_from_imported_post_id("post#" + post["reply_to_id"])
+        end
+        opts
       end
     end
   end
